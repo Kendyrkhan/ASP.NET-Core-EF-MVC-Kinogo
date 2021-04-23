@@ -20,9 +20,78 @@ namespace Kinogo.Controllers
         }
 
         // GET: Movies
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string sortOrder,
+    string currentFilter,
+    string searchString,
+    int? pageNumber)
         {
-            return View(await _context.Movies.ToListAsync());
+            ViewData["CurrentSort"] = sortOrder;
+            ViewData["NameSortParm"] = String.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
+            ViewData["YearSortParm"] = sortOrder == "Year" ? "year_desc" : "Year";
+            ViewData["CollectionSortParm"] = sortOrder == "Collection" ? "collection_desc" : "Collection";
+            ViewData["SpentSortParm"] = sortOrder == "Spent" ? "spent_desc" : "Spent";
+            ViewData["RatingSortParm"] = sortOrder == "Rating" ? "rating_desc" : "Rating";
+            ViewData["CurrentFilter"] = searchString;
+
+            if (searchString != null)
+            {
+                pageNumber = 1;
+            }
+            else
+            {
+                searchString = currentFilter;
+            }
+
+            var movies = from s in _context.Movies
+                           select s;
+            ViewData["DescSortParm"]= movies.OrderBy(s => s.Description);
+            ViewData["ImageSortParm"] = movies.OrderBy(s => s.Image);
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                movies = movies.Where(s => s.Name.Contains(searchString)
+                                      );
+            }
+            switch (sortOrder)
+            {
+                case "name_desc":
+                    movies = movies.OrderByDescending(s => s.Name);
+                    break;
+                case "Year":
+                    movies = movies.OrderBy(s => s.Year);
+                    break;
+                case "year_desc":
+                    movies = movies.OrderByDescending(s => s.Year);
+                    break;
+                case "Collection":
+                    movies = movies.OrderBy(s => s.Сollection);
+                    break;
+                case "collection_desc":
+                    movies = movies.OrderByDescending(s => s.Сollection);
+                    break;
+
+                case "Spent":
+                    movies = movies.OrderBy(s => s.Spent);
+                    break;
+                case "spent_desc":
+                    movies = movies.OrderByDescending(s => s.Spent);
+                    break;
+
+
+
+                case "Rating":
+                    movies = movies.OrderBy(s => s.Rating);
+                    break;
+                case "rating_desc":
+                    movies = movies.OrderByDescending(s => s.Rating);
+                    break;
+
+
+                default:
+                    movies = movies.OrderBy(s => s.Name);
+                    break;
+            }
+            int pageSize = 3;
+            return View(await PaginatedList<Movie>.CreateAsync(movies.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
         // GET: Movies/Details/5
@@ -54,7 +123,7 @@ namespace Kinogo.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Description,Year,Image,Сollection,Spent,Rating")] Movie movie)
+        public async Task<IActionResult> Create([Bind("Id,Name,Description,Year,Image,Сollection,Spent,Rating,CountryId")] Movie movie)
         {
             if (ModelState.IsValid)
             {

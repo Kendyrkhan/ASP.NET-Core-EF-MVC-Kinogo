@@ -20,9 +20,49 @@ namespace Kinogo.Controllers
         }
 
         // GET: Countries
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string sortOrder,string searchString, string currentFilter, int? pageNumber)
         {
-            return View(await _context.Countries.ToListAsync());
+
+
+            ViewData["CurrentSort"] = sortOrder;
+            ViewData["NameSortParm"] = String.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
+            ViewData["CodeSortParm"] = sortOrder == "Code" ? "code_desc" : "Code";
+
+            if (searchString != null)
+            {
+                pageNumber = 1;
+            }
+            else
+            {
+                searchString = currentFilter;
+            }
+
+            ViewData["CurrentFilter"] = searchString;
+            var countries = from c in _context.Countries
+                           select c;
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                countries = countries.Where(s => s.Name.Contains(searchString)
+                                       || s.Code.Contains(searchString));
+            }
+            switch (sortOrder)
+            {
+                case "name_desc":
+                    countries = countries.OrderByDescending(c => c.Name);
+                    break;
+                case "Code":
+                    countries = countries.OrderBy(c => c.Code);
+                    break;
+                case "code_desc":
+                    countries = countries.OrderByDescending(c => c.Code);
+                    break;
+                default:
+                    countries = countries.OrderBy(s => s.Name);
+                    break;
+            }
+
+            int pageSize = 3;
+            return View(await PaginatedList<Country>.CreateAsync(countries.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
         // GET: Countries/Details/5

@@ -20,9 +20,50 @@ namespace Kinogo.Controllers
         }
 
         // GET: Comments
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string sortOrder,
+    string currentFilter,
+    string searchString,
+    int? pageNumber)
         {
-            return View(await _context.Comments.ToListAsync());
+            ViewData["CurrentSort"] = sortOrder;
+            ViewData["TextSortParm"] = String.IsNullOrEmpty(sortOrder) ? "text_desc" : "";
+            ViewData["DateSortParm"] = sortOrder == "Date" ? "date_desc" : "Date";
+           
+            ViewData["CurrentFilter"] = searchString;
+
+            if (searchString != null)
+            {
+                pageNumber = 1;
+            }
+            else
+            {
+                searchString = currentFilter;
+            }
+            var comments = from s in _context.Comments
+                           select s;
+            ViewData["MovieIDSortParm"] = comments = comments.OrderBy(s => s.MovieId);
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                comments = comments.Where(s => s.Text.Contains(searchString)
+                                      );
+            }
+            switch (sortOrder)
+            {
+                case "name_desc":
+                    comments = comments.OrderByDescending(s => s.Text);
+                    break;
+                case "Date":
+                    comments = comments.OrderBy(s => s.CreatingDate);
+                    break;
+                case "date_desc":
+                    comments = comments.OrderByDescending(s => s.CreatingDate);
+                    break;
+                default:
+                    comments = comments.OrderBy(s => s.Text);
+                    break;
+            }
+            int pageSize = 3;
+            return View(await PaginatedList<Comment>.CreateAsync(comments.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
         // GET: Comments/Details/5
